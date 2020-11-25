@@ -16,71 +16,78 @@
 #include "exceptions/file_not_found_exception.h"
 #include "exceptions/end_of_file_exception.h"
 
-
 //#define DEBUG
 
 namespace badgerdb
 {
 
-// -----------------------------------------------------------------------------
-// BTreeIndex::BTreeIndex -- Constructor
-// -----------------------------------------------------------------------------
+	// -----------------------------------------------------------------------------
+	// BTreeIndex::BTreeIndex -- Constructor
+	// -----------------------------------------------------------------------------
 
-BTreeIndex::BTreeIndex(const std::string & relationName,
-		std::string & outIndexName,
-		BufMgr *bufMgrIn,
-		const int attrByteOffset,
-		const Datatype attrType)
-{
+	BTreeIndex::BTreeIndex(const std::string &relationName,
+						   std::string &outIndexName,
+						   BufMgr *bufMgrIn,
+						   const int attrByteOffset,
+						   const Datatype attrType)
+	{
+	}
 
-}
+	// -----------------------------------------------------------------------------
+	// BTreeIndex::~BTreeIndex -- destructor
+	// -----------------------------------------------------------------------------
 
+	BTreeIndex::~BTreeIndex()
+	{
+		scanExecuting = false;
+		bufMgr->flushFile(BTreeIndex::file);
+		delete file;
+		file = nullptr;
 
-// -----------------------------------------------------------------------------
-// BTreeIndex::~BTreeIndex -- destructor
-// -----------------------------------------------------------------------------
+	}
 
-BTreeIndex::~BTreeIndex()
-{
-}
+	// -----------------------------------------------------------------------------
+	// BTreeIndex::insertEntry
+	// -----------------------------------------------------------------------------
 
-// -----------------------------------------------------------------------------
-// BTreeIndex::insertEntry
-// -----------------------------------------------------------------------------
+	void BTreeIndex::insertEntry(const void *key, const RecordId rid)
+	{
+	}
 
-void BTreeIndex::insertEntry(const void *key, const RecordId rid) 
-{
+	// -----------------------------------------------------------------------------
+	// BTreeIndex::startScan
+	// -----------------------------------------------------------------------------
 
-}
+	void BTreeIndex::startScan(const void *lowValParm,
+							   const Operator lowOpParm,
+							   const void *highValParm,
+							   const Operator highOpParm)
+	{
+	}
 
-// -----------------------------------------------------------------------------
-// BTreeIndex::startScan
-// -----------------------------------------------------------------------------
+	// -----------------------------------------------------------------------------
+	// BTreeIndex::scanNext
+	// -----------------------------------------------------------------------------
 
-void BTreeIndex::startScan(const void* lowValParm,
-				   const Operator lowOpParm,
-				   const void* highValParm,
-				   const Operator highOpParm)
-{
+	void BTreeIndex::scanNext(RecordId &outRid)
+	{
+	}
 
-}
+	// -----------------------------------------------------------------------------
+	// BTreeIndex::endScan
+	// -----------------------------------------------------------------------------
+	//
+	void BTreeIndex::endScan()
+	{
+		if (!scanExecuting)
+		{
+			throw ScanNotInitializedException();
+		}
+		scanExecuting = false;
+		bufMgr->unPinPage(file, currentPageNum, false);
+		currentPageData = nullptr;
+		currentPageNum = 0;
+		nextEntry = 0;
+	}
 
-// -----------------------------------------------------------------------------
-// BTreeIndex::scanNext
-// -----------------------------------------------------------------------------
-
-void BTreeIndex::scanNext(RecordId& outRid) 
-{
-
-}
-
-// -----------------------------------------------------------------------------
-// BTreeIndex::endScan
-// -----------------------------------------------------------------------------
-//
-void BTreeIndex::endScan() 
-{
-
-}
-
-}
+} // namespace badgerdb
