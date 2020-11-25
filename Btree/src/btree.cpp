@@ -24,6 +24,7 @@ namespace badgerdb
 
 // -----------------------------------------------------------------------------
 // BTreeIndex::BTreeIndex -- Constructor
+// TODO
 // -----------------------------------------------------------------------------
 
 BTreeIndex::BTreeIndex(const std::string & relationName,
@@ -32,12 +33,23 @@ BTreeIndex::BTreeIndex(const std::string & relationName,
 		const int attrByteOffset,
 		const Datatype attrType)
 {
-
+	//compute outIndexName
+	std::ostringstream idxStr;
+	idxStr << relationName << '.' << attrByteOffset;
+	std::string indexName = idxStr.str();
+	//check if index exists
+	try {
+		BlobFile::open(indexName);
+		std::cout << indexName + ": File successfully opened!" << std::endl;
+	} catch (const FileNotFoundException &e) {
+		std::cout << indexName + ": File Not Found!" << std::endl;
+	}
 }
 
 
 // -----------------------------------------------------------------------------
 // BTreeIndex::~BTreeIndex -- destructor
+// TODO
 // -----------------------------------------------------------------------------
 
 BTreeIndex::~BTreeIndex()
@@ -46,6 +58,7 @@ BTreeIndex::~BTreeIndex()
 
 // -----------------------------------------------------------------------------
 // BTreeIndex::insertEntry
+// TODO
 // -----------------------------------------------------------------------------
 
 void BTreeIndex::insertEntry(const void *key, const RecordId rid) 
@@ -55,6 +68,7 @@ void BTreeIndex::insertEntry(const void *key, const RecordId rid)
 
 // -----------------------------------------------------------------------------
 // BTreeIndex::startScan
+// TODO
 // -----------------------------------------------------------------------------
 
 void BTreeIndex::startScan(const void* lowValParm,
@@ -67,6 +81,7 @@ void BTreeIndex::startScan(const void* lowValParm,
 
 // -----------------------------------------------------------------------------
 // BTreeIndex::scanNext
+// TODO
 // -----------------------------------------------------------------------------
 
 void BTreeIndex::scanNext(RecordId& outRid) 
@@ -76,6 +91,7 @@ void BTreeIndex::scanNext(RecordId& outRid)
 
 // -----------------------------------------------------------------------------
 // BTreeIndex::endScan
+// TODO
 // -----------------------------------------------------------------------------
 //
 void BTreeIndex::endScan() 
