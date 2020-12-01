@@ -31,6 +31,27 @@ namespace badgerdb
 						   const int attrByteOffset,
 						   const Datatype attrType)
 	{
+		//compute indexName
+		std::ostringstream idxStr;
+		idxStr << relationName << '.' << attrByteOffset;
+		std::string indexName = idxStr.str();
+		outIndexName = indexName;
+		//compute meta data
+		IndexMetaInfo* header = new IndexMetaInfo();
+		//header->relationName = relationName;
+		header->attrByteOffset = attrByteOffset;
+		header-> attrType = attrType;
+		//Try opening the file
+		try {
+			file = new BlobFile(indexName, false);
+			//File Exists
+			std::cout << relationName + ":: File found!" << std::endl;			
+
+		} catch (FileNotFoundException *e) {
+			//File Does Not Exist
+			std::cout << relationName + ":: File not found!" << std::endl;
+
+		}
 	}
 
 	// -----------------------------------------------------------------------------
