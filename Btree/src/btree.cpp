@@ -33,7 +33,7 @@ namespace badgerdb
 	{
 		scanExecuting = false;
 		bufMgr = bufMgrIn;
-		
+
 //compute indexName
 		std::ostringstream idxStr;
 		idxStr << relationName << '.' << attrByteOffset;
@@ -52,6 +52,7 @@ namespace badgerdb
 
 		} catch (FileNotFoundException e) {
 			//File Does Not Exist
+			file = new BlobFile(indexName, true);
 			std::cout << relationName + ":: File not found!" << std::endl;
 			file = new BlobFile(outIndexName, true);
 
