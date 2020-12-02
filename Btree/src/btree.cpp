@@ -31,26 +31,49 @@ namespace badgerdb
 						   const int attrByteOffset,
 						   const Datatype attrType)
 	{
+		//set index fields
+		bufMgr = bufMgrIn;
+		PageId headerPageNumber;
+		attributeType = attrType;
+		this->attrByteOffset = attrByteOffset;
 		//compute indexName
 		std::ostringstream idxStr;
 		idxStr << relationName << '.' << attrByteOffset;
-		std::string indexName = idxStr.str();
-		outIndexName = indexName;
-		//compute meta data
-		IndexMetaInfo* header = new IndexMetaInfo();
-		//header->relationName = relationName;
-		header->attrByteOffset = attrByteOffset;
-		header-> attrType = attrType;
+		outIndexName = idxStr.str();
 		//Try opening the file
 		try {
-			file = new BlobFile(indexName, false);
+			file = new BlobFile(outIndexName, false);
 			//File Exists
-			std::cout << relationName + ":: File found!" << std::endl;			
-
+			//TODO: remove this output once implementation is done
+			std::cout << relationName + ":: File found!" << std::endl;	
+			//get metadata
+			Page* headerPage;
+			bufMgr->readPage(file, 1, headerPage);
+			IndexMetaInfo* header = (IndexMetaInfo *) headerPage;
+			rootPageNum = header->rootPageNo;
 		} catch (FileNotFoundException &e) {
 			//File Does Not Exist
-			file = new BlobFile(indexName, true);
+			//set fields
+			file = new BlobFile(outIndexName, true);
+			rootPageNum = 2;
+			//TODO: remove this output once implementation is done
 			std::cout << relationName + ":: File not found!" << std::endl;
+			//compute meta data
+			IndexMetaInfo* header = new IndexMetaInfo();
+			strcpy(header->relationName, relationName.c_str());
+			header->attrByteOffset = attrByteOffset;
+			header-> attrType = attrType;
+			header->rootPageNo = 2;
+			//create header with index meta data
+			Page* headerPage = (Page *) header; 
+			//add meta data as first page to the file
+			bufMgr->allocPage(file, headerPageNumber, headerPage);
+			//set the header page number
+			headerPageNum = headerPageNumber;
+			//TODO: scan relation
+			FileScan* scanner = new FileScan(relationName, bufMgr);
+			RecordId currRid;
+			int currKey;
 		}
 	}
 
