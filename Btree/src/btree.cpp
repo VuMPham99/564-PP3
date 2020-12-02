@@ -70,7 +70,7 @@ namespace badgerdb
 		bufMgr->flushFile(BTreeIndex::file);
 		delete file;
 		file = nullptr;
-	
+		
 	}
 
 	// -----------------------------------------------------------------------------
@@ -88,9 +88,10 @@ namespace badgerdb
 	void BTreeIndex::insertEntry(const void *key, const RecordId rid)
 	{
 		RIDKeyPair<int> entry;
-		entry.set(rid, *((int *)key));
+		PageKeyPair<int> *newEntry = nullptr;
 		Page* root;
-
+		entry.set(rid, *((int *)key));
+		bufMgr->readPage(file, rootPageNum, root);
 	}
 
 	// -----------------------------------------------------------------------------
