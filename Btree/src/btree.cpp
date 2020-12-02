@@ -75,6 +75,7 @@ namespace badgerdb
 			RecordId currRid;
 			int currKey;
 		}
+
 	}
 
 	// -----------------------------------------------------------------------------
@@ -87,15 +88,28 @@ namespace badgerdb
 		bufMgr->flushFile(BTreeIndex::file);
 		delete file;
 		file = nullptr;
-
+		
 	}
 
 	// -----------------------------------------------------------------------------
 	// BTreeIndex::insertEntry
 	// -----------------------------------------------------------------------------
-
+	/**
+	 * Insert a new entry using the pair <value,rid>. 
+	 * Start from root to recursively find out the leaf to insert the entry in. The insertion may cause splitting of leaf node.
+	 * This splitting will require addition of new leaf page number entry into the parent non-leaf, which may in-turn get split.
+	 * This may continue all the way upto the root causing the root to get split. If root gets split, metapage needs to be changed accordingly.
+	 * Make sure to unpin pages as soon as you can.
+   * @param key			Key to insert, pointer to integer/double/char string
+   * @param rid			Record ID of a record whose entry is getting inserted into the index.
+	**/
 	void BTreeIndex::insertEntry(const void *key, const RecordId rid)
 	{
+		RIDKeyPair<int> entry;
+		PageKeyPair<int> *newEntry = nullptr;
+		Page* root;
+		entry.set(rid, *((int *)key));
+		bufMgr->readPage(file, rootPageNum, root);
 	}
 
 	// -----------------------------------------------------------------------------
