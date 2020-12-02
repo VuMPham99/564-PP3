@@ -43,14 +43,14 @@ namespace badgerdb
 		header-> attrType = attrType;
 		//Try opening the file
 		try {
-			file = new BlobFile(indexName, false);
+			file = BlobFile::open(indexName);
 			//File Exists
 			std::cout << relationName + ":: File found!" << std::endl;			
 
-		} catch (FileNotFoundException *e) {
+		} catch (FileNotFoundException &e) {
 			//File Does Not Exist
+			file = new BlobFile(indexName, true);
 			std::cout << relationName + ":: File not found!" << std::endl;
-
 		}
 	}
 
