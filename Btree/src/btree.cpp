@@ -35,6 +35,9 @@ namespace badgerdb
 		bufMgr = bufMgrIn;
 		attributeType = attrType;
 		this->attrByteOffset = attrByteOffset;
+		nodeOccupancy = INTARRAYNONLEAFSIZE;
+		leafOccupancy = INTARRAYLEAFSIZE;
+		scanExecuting = false;
 		//compute indexName
 		std::ostringstream idxStr;
 		idxStr << relationName << '.' << attrByteOffset;
@@ -57,28 +60,29 @@ namespace badgerdb
 			file = new BlobFile(outIndexName, true);
 			//TODO: remove this output once implementation is done
 			std::cout << relationName + ":: File not found!" << std::endl;
-			//compute meta data
+			//compute meta data 
+            //allocate pages
+			Page *headerPage;
+			Page *rootPage;
+			bufMgr->allocPage(file, rootPageNum, rootPage);
+			bufMgr->allocPage(file, headerPageNum, headerPage);
+
+			//create header with index meta data
 			IndexMetaInfo* header = new IndexMetaInfo();
 			strcpy(header->relationName, relationName.c_str());
 			header->attrByteOffset = attrByteOffset;
 			header-> attrType = attrType;
-			header->rootPageNo = 2;
-			//create header with index meta data
-			Page* headerPage;
-			bufMgr->allocPage(file, headerPageNum, headerPage);
-			headerPage = (Page *) header; 
-            //create root page
-            Page* rootPage;
-			bufMgr->allocPage(file, rootPageNum, rootPage);
-            LeafNodeInt *root = new LeafNodeInt();
-            root->rightSibPageNo = 0;
-			rootPage = (Page *) root;
+			header->rootPageNo = rootPageNum;	
 
+            LeafNodeInt *root = (LeafNodeInt *) rootPage;
+            root->rightSibPageNo = 0;
+			root->level = 1;
+			//std::cout << "Root page level is:: " << ((NonLeafNodeInt *)rootPage)->level << std::endl;	
 			std::cout << relationName + ":: Allocated pages!" << std::endl;
+			std::cout << relationName + ":: Unpinned pages!" << std::endl;
 			//unpin pages
 			bufMgr->unPinPage(file, headerPageNum, true);
     		bufMgr->unPinPage(file, rootPageNum, true);
-			std::cout << relationName + ":: Unpinned pages!" << std::endl;
 			//TODO: scan relation
 			FileScan* scanner = new FileScan(relationName, bufMgr);
 			RecordId currRid;
@@ -88,7 +92,6 @@ namespace badgerdb
 					insertEntry(scanner->getRecord().c_str() + attrByteOffset, currRid);
 				}	
 			} catch (EndOfFileException &e) {
-				std::cout << relationName + ":: Done Scanning! :D" << std::endl;
                 //save file to disk
                 bufMgr->flushFile(file);
 			}
@@ -121,38 +124,8 @@ namespace badgerdb
    * @param rid			Record ID of a record whose entry is getting inserted into the index.
 	**/
 	void BTreeIndex::insertEntry(const void *key, const RecordId rid)
-	{
-        //searchTree(key, rid, rootPageNum);
-		//RIDKeyPair<int> entry;
-		//PageKeyPair<int> *newEntry = nullptr;
-		//Page* root = rootPageNum;
-		//entry.set(rid, *((int *)key));
-		//bufMgr->readPage(file, rootPageNum, root);
-		
+	{	
 	}
-
-    // /**
-    //  * 
-    //  **/
-    // void BTreeIndex::searchTree(const void *key, const RecordId rid, PageId currentNodeNum) {
-    //     // Page currPage = file->readPage(currentNodeNum);
-    //     // if ((LeafNodeInt *)currPage->level == 1) {
-    //     //     LeafNodeInt* node = (LeafNodeInt *) currPage;
-
-    //     // }
-    //     // else {
-    //     //     NonLeafNodeInt* node = (NonLeafNodeInt *) currPage;
-    //     //     int keys = node->keyArray;
-    //     //     int i = 0;
-    //     //     //iterate through keyArray until we find a key that is greater than the new key
-    //     //     while(*key < keys[i]) {
-
-    //     //     }
-    //     //     if(){
-				
-	// 	// 	}
-    //     // }
-    // }
 
 
 	// -----------------------------------------------------------------------------
@@ -164,6 +137,109 @@ namespace badgerdb
 							   const void *highValParm,
 							   const Operator highOpParm)
 	{
+		std::cout << "Started Scanning! :D" << std::endl;
+		//set range values
+		highValInt = *((int *) highValParm);
+		lowValInt = *((int *) lowValParm);
+
+		//check for op code violation
+		if ((lowOpParm != GT && lowOpParm != GTE) || (highOpParm != LT && highOpParm != LTE)) 
+		{
+			throw new BadOpcodesException();
+		}
+		//check for range violation
+		else if (lowValInt > highValInt)
+		{
+			throw new BadScanrangeException();
+		}
+		//set operator values
+		highOp = highOpParm;
+		lowOp = lowOpParm;
+		//end scan if it has already started
+		if (scanExecuting) 
+		{
+			endScan();
+		}
+		//start scan
+		currentPageNum = rootPageNum;
+		bufMgr->readPage(file, currentPageNum, currentPageData);
+		NonLeafNodeInt* curr = (NonLeafNodeInt *) currentPageData;
+		//if the root is not a leaf
+		if (curr->level != 1) {
+			//find the leaf node
+			bool leafFound = false;
+			while(!leafFound) 
+			{
+				//Find which page to go to
+				PageId nextPageNum;
+				findNextNonLeaf(curr, nextPageNum, lowValInt);
+				bufMgr->unPinPage(file, currentPageNum, false);
+				currentPageNum = nextPageNum;
+				//read the page
+				bufMgr->readPage(file, currentPageNum, currentPageData);
+				//cast page as a non leaf node
+				curr = (NonLeafNodeInt *) currentPageData;
+				//check if page is leaf
+				if (curr->level == 1) {
+					leafFound = true;
+				}
+			}
+		}
+		std::cout << "Leaf has been found!" << std::endl;
+		//find first entry to scan
+		bool entryFound = false;
+		while (!entryFound) {
+			//cast page to leaf node
+			LeafNodeInt* curr = (LeafNodeInt *) currentPageData;
+			//if entire page is empty, the key is not in the B+ tree
+			if (curr->ridArray[0].page_number == 0)
+			{
+				std::cout << "Node is empty! :O" << std::endl;
+				bufMgr->unPinPage(file, currentPageNum, false);
+				throw new NoSuchKeyFoundException();
+			}
+			//else search node from left to right
+			bool isNull = false;
+			for (int i = 0; i < leafOccupancy && !isNull; i++)
+			{
+				std::cout << "Iterating over entry" << std::endl;
+				//if current entry is null, set isNull to true
+				if (i < leafOccupancy - 1 && curr->ridArray[i + 1].page_number == 0)
+				{
+					isNull = true;
+				}
+				//check if current entry's key is within range
+				int key = curr->keyArray[i];
+				if (isKeyValid(lowValInt, lowOp, highValInt, highOp, key))
+				{
+					//starting entry has been found
+					entryFound = true;
+					scanExecuting = true;
+					nextEntry = i;
+					break;
+				}
+				//check operator edge cases
+				else if ((highOp == LTE && key > highValInt) || (highOp == LT && key >= highValInt))
+				{
+					bufMgr->unPinPage(file, currentPageNum, false);
+					throw new NoSuchKeyFoundException();
+				}
+				//if we've reached the end of the current leaf
+				if (isNull || i == leafOccupancy)
+				{
+					bufMgr->unPinPage(file, currentPageNum, false);
+					//if we've in the last leaf node, key is not in the B+ tree
+					if (curr->rightSibPageNo == 0)
+					{
+						throw new NoSuchKeyFoundException();
+					}
+					//otherwise, go to next node
+					currentPageNum = curr->rightSibPageNo;
+					bufMgr->readPage(file, currentPageNum, currentPageData);
+				}
+			}
+		}
+		
 	}
 
 	// -----------------------------------------------------------------------------
@@ -189,6 +265,50 @@ namespace badgerdb
 		currentPageData = nullptr;
 		currentPageNum = 0;
 		nextEntry = 0;
+	}
+
+	/**
+	 * TODO: Add comments
+	 */
+	void BTreeIndex::findNextNonLeaf(NonLeafNodeInt * curr, PageId &nextPageNum, int key)
+	{
+		int i = nodeOccupancy;
+		while (i >= 0 && (curr->pageNoArray[i] == 0))
+		{
+			i--;
+		}
+		while (i > 0 && (curr->keyArray[i-1] >= key))
+		{
+			i--;
+		}
+		nextPageNum = curr->pageNoArray[i];
+	}
+
+	/**
+	 * TODO: Add comments
+	 */
+	bool BTreeIndex::isKeyValid(int lowVal, Operator lowOp, int highVal, Operator highOp, int key)
+	{
+		std::cout << "checking validity of " + key << std::endl;
+		//if operators are '<=' & '>='
+		if (highOp == LTE && lowOp == GTE) 
+		{
+			return (key <= highVal && key >= lowVal);
+		}
+		//if operators are '<=' & '>'
+		else if (highOp == LTE && lowOp == GT)
+		{
+			return (key <= highVal && key > lowVal);
+		}
+		//if operators are '<' & '>='
+		else if (highOp == LT && lowOp == GTE)
+		{
+			return (key < highVal && key >= lowVal);
+		}
+		//if operators are '<' & '>'
+		else {
+			return (key < highVal && key > lowVal);
+		}
 	}
 
 } // namespace badgerdb

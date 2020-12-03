@@ -163,6 +163,11 @@ struct NonLeafNodeInt{
 */
 struct LeafNodeInt{
   /**
+   * Whether the node is a leaf or non leaf
+   */
+  int level;
+  
+  /**
    * Stores keys.
    */
 	int keyArray[ INTARRAYLEAFSIZE ];
@@ -364,7 +369,16 @@ class BTreeIndex {
 	 * @throws ScanNotInitializedException If no scan has been initialized.
 	**/
 	void endScan();
+
+  /**
+   *TODO: add comment 
+   */
+  void findNextNonLeaf(NonLeafNodeInt* curr, PageId &nextPageNum, int key);
 	
+  /**
+   * TODO: add comment
+   */
+  bool isKeyValid(int lowVal, Operator lowOp, int highVal, Operator highOp, int key);
 };
 
 }
