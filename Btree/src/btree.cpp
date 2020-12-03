@@ -48,7 +48,7 @@ namespace badgerdb
 			std::cout << relationName + ":: File found!" << std::endl;	
 			//get metadata
 			Page* headerPage;
-			bufMgr->readPage(file, 1, headerPage);
+			bufMgr->readPage(file, file->getFirstPageNo(), headerPage);
 			IndexMetaInfo* header = (IndexMetaInfo *) headerPage;
 			rootPageNum = header->rootPageNo;
 		} catch (FileNotFoundException &e) {
@@ -73,7 +73,16 @@ namespace badgerdb
 			//TODO: scan relation
 			FileScan* scanner = new FileScan(relationName, bufMgr);
 			RecordId currRid;
-			int currKey;
+			int* currKey;
+			try {
+				while(1) {
+					scanner->scanNext(currRid);
+					//currKey = scanner->getRecord();
+					insertEntry(scanner->getRecord().c_str(), currRid);
+				}	
+			} catch (EndOfFileException &e) {
+				std::cout << relationName + ":: Done Scanning! :D" << std::endl;
+			}
 		}
 
 	}
