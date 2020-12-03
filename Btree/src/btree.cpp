@@ -248,6 +248,39 @@ namespace badgerdb
 
 	void BTreeIndex::scanNext(RecordId &outRid)
 	{
+		//check if scan has started yet
+		if (!scanExecuting) {
+			throw new ScanNotInitializedException();
+		}
+		LeafNodeInt* curr = (LeafNodeInt *) currentPageData;
+		//if end of node is reached
+		if (nextEntry == leafOccupancy || curr->ridArray[nextEntry].page_number == 0)
+		{
+			bufMgr->unPinPage(file, currentPageNum, false);
+			//if we're in the last node, end scan
+			if (curr->rightSibPageNo == 0) {
+				endScan();
+				throw new IndexScanCompletedException();
+			}
+			//otherwise go to next node
+			nextEntry = 0;
+			currentPageNum = curr->rightSibPageNo;
+			bufMgr->readPage(file, currentPageNum, currentPageData);
+			curr = (LeafNodeInt *) currentPageData;
+		}
+		//check if current entry has key within range
+		int key = curr->keyArray[nextEntry];
+		if (isKeyValid(lowValInt, lowOp, highValInt, highOp, key))
+		{
+			outRid = curr->ridArray[nextEntry];
+			nextEntry++;
+		}
+		//if not end the scan
+		else
+		{
+			endScan();
+			throw new IndexScanCompletedException();
+		}
 	}
 
 	// -----------------------------------------------------------------------------
