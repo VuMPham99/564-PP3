@@ -33,7 +33,6 @@ namespace badgerdb
 	{
 		//set index fields
 		bufMgr = bufMgrIn;
-		PageId headerPageNumber;
 		attributeType = attrType;
 		this->attrByteOffset = attrByteOffset;
 		//compute indexName
@@ -51,11 +50,11 @@ namespace badgerdb
 			bufMgr->readPage(file, file->getFirstPageNo(), headerPage);
 			IndexMetaInfo* header = (IndexMetaInfo *) headerPage;
 			rootPageNum = header->rootPageNo;
+            bufMgr->unPinPage(file, file->getFirstPageNo(), false);
 		} catch (FileNotFoundException &e) {
 			//File Does Not Exist
 			//set fields
 			file = new BlobFile(outIndexName, true);
-			rootPageNum = 2;
 			//TODO: remove this output once implementation is done
 			std::cout << relationName + ":: File not found!" << std::endl;
 			//compute meta data
@@ -65,26 +64,35 @@ namespace badgerdb
 			header-> attrType = attrType;
 			header->rootPageNo = 2;
 			//create header with index meta data
-			Page* headerPage = (Page *) header; 
-			//add meta data as first page to the file
-			bufMgr->allocPage(file, headerPageNumber, headerPage);
-			//set the header page number
-			headerPageNum = headerPageNumber;
+			Page* headerPage;
+			bufMgr->allocPage(file, headerPageNum, headerPage);
+			headerPage = (Page *) header; 
+            //create root page
+            Page* rootPage;
+			bufMgr->allocPage(file, rootPageNum, rootPage);
+            LeafNodeInt *root = new LeafNodeInt();
+            root->rightSibPageNo = 0;
+			rootPage = (Page *) root;
+
+			std::cout << relationName + ":: Allocated pages!" << std::endl;
+			//unpin pages
+			bufMgr->unPinPage(file, headerPageNum, true);
+    		bufMgr->unPinPage(file, rootPageNum, true);
+			std::cout << relationName + ":: Unpinned pages!" << std::endl;
 			//TODO: scan relation
 			FileScan* scanner = new FileScan(relationName, bufMgr);
 			RecordId currRid;
-			int* currKey;
 			try {
 				while(1) {
 					scanner->scanNext(currRid);
-					//currKey = scanner->getRecord();
-					insertEntry(scanner->getRecord().c_str(), currRid);
+					insertEntry(scanner->getRecord().c_str() + attrByteOffset, currRid);
 				}	
 			} catch (EndOfFileException &e) {
 				std::cout << relationName + ":: Done Scanning! :D" << std::endl;
+                //save file to disk
+                bufMgr->flushFile(file);
 			}
 		}
-
 	}
 
 	// -----------------------------------------------------------------------------
@@ -114,12 +122,38 @@ namespace badgerdb
 	**/
 	void BTreeIndex::insertEntry(const void *key, const RecordId rid)
 	{
-		RIDKeyPair<int> entry;
-		PageKeyPair<int> *newEntry = nullptr;
-		Page* root;
-		entry.set(rid, *((int *)key));
-		bufMgr->readPage(file, rootPageNum, root);
+        //searchTree(key, rid, rootPageNum);
+		//RIDKeyPair<int> entry;
+		//PageKeyPair<int> *newEntry = nullptr;
+		//Page* root = rootPageNum;
+		//entry.set(rid, *((int *)key));
+		//bufMgr->readPage(file, rootPageNum, root);
+		
 	}
+
+    // /**
+    //  * 
+    //  **/
+    // void BTreeIndex::searchTree(const void *key, const RecordId rid, PageId currentNodeNum) {
+    //     // Page currPage = file->readPage(currentNodeNum);
+    //     // if ((LeafNodeInt *)currPage->level == 1) {
+    //     //     LeafNodeInt* node = (LeafNodeInt *) currPage;
+
+    //     // }
+    //     // else {
+    //     //     NonLeafNodeInt* node = (NonLeafNodeInt *) currPage;
+    //     //     int keys = node->keyArray;
+    //     //     int i = 0;
+    //     //     //iterate through keyArray until we find a key that is greater than the new key
+    //     //     while(*key < keys[i]) {
+
+    //     //     }
+    //     //     if(){
+				
+	// 	// 	}
+    //     // }
+    // }
+
 
 	// -----------------------------------------------------------------------------
 	// BTreeIndex::startScan
