@@ -166,7 +166,7 @@ struct LeafNodeInt{
    * Whether the node is a leaf or non leaf
    */
   int level;
-  
+
   /**
    * Stores keys.
    */
@@ -371,12 +371,22 @@ class BTreeIndex {
 	void endScan();
 
   /**
-   *TODO: add comment 
+   * Helper function which finds the child of the current node which holds the key of the non leaf node we are trying to find. 
+   * @param curr The current (parent) node in the B+ Tree
+   * @param nextPageNum Page number of the child node to which the key belongs to
+   * @param key The value of the key we are looking for in the child nodes 
+   * @param
    */
   void findNextNonLeaf(NonLeafNodeInt* curr, PageId &nextPageNum, int key);
 	
   /**
-   * TODO: add comment
+   * Helper function which determines whether a given key belongs to a certain range of values.
+   * @param lowVal the low value of the range
+   * @param lowOp the low operator of the range (either GT or GTE)
+   * @param highVal the high value of the range
+   * @param highOp the high operator of the range (either LT or LTE)
+   * @param key the value of the key
+   * @return True if the key belongs in the range, False otherwise
    */
   bool isKeyValid(int lowVal, Operator lowOp, int highVal, Operator highOp, int key);
 };
