@@ -64,17 +64,21 @@ BufMgr * bufMgr = new BufMgr(100);
 // -----------------------------------------------------------------------------
 
 void createRelationForward();
+void createRelationForwardInput(int beg, int end);
 void createRelationBackward();
 void createRelationRandom();
 void createRelationRandomInput(int size);
 void intTests();
 void intEmpty();
+void intSingle();
+void intNegative();
 int intScan(BTreeIndex *index, int lowVal, Operator lowOp, int highVal, Operator highOp);
 void indexTests();
 void test1();
 void test2();
 void test3();
 void test4();
+void test5();
 void errorTests();
 void deleteRelation();
 
@@ -183,11 +187,28 @@ void test3()
 void test4(){
 	//Testing for an empty tree by passing in size of zero 
 	std::cout << "--------------------" << std::endl;
+	std::cout << "Test for empty tree" << std::endl;
+	createRelationRandomInput(600);
+	intSingle();
+	deleteRelation();
+}
+void test5(){
+	//Testing for an empty tree by passing in size of zero 
+	std::cout << "--------------------" << std::endl;
 	std::cout << "createRelationRando" << std::endl;
 	createRelationRandomInput(0);
 	intEmpty();
 	deleteRelation();
 }
+void test6(){
+//Testing for an empty tree by passing in size of zero 
+	std::cout << "--------------------" << std::endl;
+	std::cout << "createRelationRando" << std::endl;
+	createRelationForwardInput(-1000, 1000);
+	intNegative();
+	deleteRelation();
+}
+
 
 // -----------------------------------------------------------------------------
 // createRelationForward
@@ -237,7 +258,52 @@ void createRelationForward()
 
 	file1->writePage(new_page_number, new_page);
 }
+// -----------------------------------------------------------------------------
+// createRelationForwardInput
+// -----------------------------------------------------------------------------
+void createRelationForwardInput(int beg, int end)
+{
+	std::vector<RecordId> ridVec;
+  // destroy any old copies of relation file
+	try
+	{
+		File::remove(relationName);
+	}
+	catch(FileNotFoundException e)
+	{
+	}
 
+  file1 = new PageFile(relationName, true);
+
+  // initialize all of record1.s to keep purify happy
+  memset(record1.s, ' ', sizeof(record1.s));
+	PageId new_page_number;
+  Page new_page = file1->allocatePage(new_page_number);
+
+  // Insert a bunch of tuples into the relation.
+  for(int i = beg; i < end; i++ )
+	{
+    sprintf(record1.s, "%05d string record", i);
+    record1.i = i;
+    record1.d = (double)i;
+    std::string new_data(reinterpret_cast<char*>(&record1), sizeof(record1));
+		while(1)
+		{
+			try
+			{
+    		new_page.insertRecord(new_data);
+				break;
+			}
+			catch(InsufficientSpaceException e)
+			{
+				file1->writePage(new_page_number, new_page);
+  			new_page = file1->allocatePage(new_page_number);
+			}
+		}
+  }
+
+	file1->writePage(new_page_number, new_page);
+}
 // -----------------------------------------------------------------------------
 // createRelationBackward
 // -----------------------------------------------------------------------------
@@ -444,6 +510,19 @@ void intTests()
 	checkPassFail(intScan(&index,300,GT,400,LT), 99)
 	checkPassFail(intScan(&index,3000,GTE,4000,LT), 1000)
 }
+void intSingle()
+{
+   std::cout << "Create a B+ Tree index on the integer field" << std::endl;
+  BTreeIndex index(relationName, intIndexName, bufMgr, offsetof(tuple,i), INTEGER);
+	// run some tests
+	checkPassFail(intScan(&index,-3,GT,3,LT), 3)
+	checkPassFail(intScan(&index,25,GT,40,LT), 14)
+	checkPassFail(intScan(&index,3000,GTE,4000,LT), 0)
+	checkPassFail(intScan(&index,300,GT,400,LT), 99)
+	checkPassFail(intScan(&index,996,GT,1001,LT), 0)
+	checkPassFail(intScan(&index,0,GT,1,LT), 0)
+	checkPassFail(intScan(&index,20,GTE,35,LTE), 16)
+}
 void intEmpty()
 {
   std::cout << "Create a B+ Tree index on the integer field" << std::endl;
@@ -459,6 +538,19 @@ void intEmpty()
 	checkPassFail(intScan(&index,3000,GTE,4000,LT), 0)
 }
 
+void intNegative(){
+std::cout << "Create a B+ Tree index on the integer field" << std::endl;
+  BTreeIndex index(relationName, intIndexName, bufMgr, offsetof(tuple,i), INTEGER);
+
+	// run some tests
+	checkPassFail(intScan(&index,25,GT,40,LT), 14)
+	checkPassFail(intScan(&index,0,GT,1,LT), 0)
+	checkPassFail(intScan(&index,300,GT,400,LT), 99)
+	checkPassFail(intScan(&index,20,GTE,35,LTE), 16)
+	checkPassFail(intScan(&index,-500,GT,500,LT), 499)
+	checkPassFail(intScan(&index,3000,GTE,4000,LT), 0)
+	checkPassFail(intScan(&index,-3,GT,3,LT), 5)
+}
 int intScan(BTreeIndex * index, int lowVal, Operator lowOp, int highVal, Operator highOp)
 {
   RecordId scanRid;
