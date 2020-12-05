@@ -1,0 +1,3 @@
+We added all of our tests within the existing tests in the main.cpp file. 
+Our design document is the "Design Report B+ Tree.pdf" file. 
+The functionality of our code was added in the btree.cpp file. We also added to our btree.h file

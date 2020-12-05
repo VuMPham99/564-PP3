@@ -233,6 +233,10 @@ class BTreeIndex {
    */
 	int			nodeOccupancy;
 
+  /**
+   * TODO: add comments
+   */
+  PageId firstRootId;
 
 	// MEMBERS SPECIFIC TO SCANNING
 
@@ -334,6 +338,37 @@ class BTreeIndex {
    * @param rid			Record ID of a record whose entry is getting inserted into the index.
 	**/
 	void insertEntry(const void* key, const RecordId rid);
+
+  /**
+   * TODO: add comments
+   */
+  void insertHelper(Page * currentPage, PageId currentPageId, RIDKeyPair<int> entry,PageKeyPair<int> *&newEntry, bool isLeafNode);
+
+  /**
+   *  TODO: add comments
+   */
+  void splitNonLeaf(NonLeafNodeInt *currNode, PageId currPageId, PageKeyPair<int> *&newEntry);
+
+  /**
+   * TODO: add comments
+   */
+  void insertLeaf(LeafNodeInt * leaf, RIDKeyPair<int> entry);
+
+  /**
+   * TODO: add comments
+   */
+  void insertNonLeaf(NonLeafNodeInt * nonleaf, PageKeyPair<int> *entry);
+  
+  /**
+   * TODO: add comments
+   */
+  void rootUpdater(PageId firstRootPage, PageKeyPair<int> *newEntry);
+
+  /**
+   * TODO: add comments
+   */
+  void splitLeaf(LeafNodeInt *leaf, PageId leafPId, PageKeyPair<int> *&newEntry, RIDKeyPair<int> entry);
+
 
 
   /**
