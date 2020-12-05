@@ -288,7 +288,6 @@ void createRelationForwardInput(int beg, int end)
 	catch (FileNotFoundException e)
 	{
 	}
-
 	file1 = new PageFile(relationName, true);
 
 	// initialize all of record1.s to keep purify happy
@@ -317,7 +316,6 @@ void createRelationForwardInput(int beg, int end)
 			}
 		}
 	}
-
 	file1->writePage(new_page_number, new_page);
 }
 // -----------------------------------------------------------------------------
@@ -489,7 +487,6 @@ void createRelationRandomInput(int size)
 		intvec[pos] = temp;
 		i++;
 	}
-
 	file1->writePage(new_page_number, new_page);
 }
 // -----------------------------------------------------------------------------
@@ -543,7 +540,6 @@ void intEmpty()
 {
 	std::cout << "Create a B+ Tree index on the integer field" << std::endl;
 	BTreeIndex index(relationName, intIndexName, bufMgr, offsetof(tuple, i), INTEGER);
-
 	// run some tests
 	checkPassFail(intScan(&index, 25, GT, 40, LT), 0)
 	checkPassFail(intScan(&index, 20, GTE, 35, LTE), 0)
@@ -553,7 +549,6 @@ void intEmpty()
 	checkPassFail(intScan(&index, 300, GT, 400, LT), 0)
 	checkPassFail(intScan(&index, 3000, GTE, 4000, LT), 0)
 }
-
 void intNegative()
 {
 	std::cout << "Create a B+ Tree index on the integer field" << std::endl;
